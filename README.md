@@ -87,6 +87,16 @@ Set this URL as `NEXT_PUBLIC_API_URL` in your Vercel frontend project.
 - First request after idle may take 30–60 seconds (cold start).
 - If Render asks for a card, it is usually optional verification on the Hobby plan — select **Free** instance type and skip payment if possible. A $1 hold may appear and is refunded.
 
+### `GET /api/agent-logs`
+
+Server-Sent Events stream of simulated agent execution steps. Used by the frontend live console during analysis.
+
+```
+data: ⚡ Initializing Multi-Agent Orchestrator...
+
+data: 🔍 Inspecting database via pgvector context...
+```
+
 ## API
 
 ### `POST /api/analyze`

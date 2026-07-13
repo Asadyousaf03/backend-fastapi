@@ -3,9 +3,11 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routes.agent_logs import router as agent_logs_router
 from schemas import AnalyzeRequest, AnalyzeResponse
 
-app = FastAPI(title="AI Hackathon API")
+app = FastAPI(title="Hack Nation AI API")
+app.include_router(agent_logs_router)
 
 default_origins = "http://localhost:3000,http://127.0.0.1:3000"
 cors_origins = [
