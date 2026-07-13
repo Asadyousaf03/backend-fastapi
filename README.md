@@ -1,12 +1,12 @@
 # AI Hackathon — Backend
 
-FastAPI service deployed as a separate Vercel project. No credit card required on the Hobby plan.
+FastAPI service deployed on Render. Pairs with the Next.js frontend on Vercel.
 
 ## Prerequisites
 
 - Python 3.12+
-- Node.js 18+ (for `vercel dev` optional)
 - Git
+- [Render](https://render.com) account (Hobby workspace)
 
 ## Local development
 
@@ -35,22 +35,57 @@ uvicorn main:app --reload --port 8000
 API: [http://localhost:8000](http://localhost:8000)  
 Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## Deploy to Vercel (recommended)
+## Deploy to Render
 
-Deploy this repo as its own Vercel project — separate from the frontend.
+### Option A — Blueprint (uses `render.yaml`)
 
-1. Go to [vercel.com/new](https://vercel.com/new) and import `Asadyousaf03/backend-fastapi`.
-2. Vercel auto-detects FastAPI from `main.py`. No build settings needed.
-3. Add an environment variable (update after frontend is deployed):
+1. Go to [dashboard.render.com](https://dashboard.render.com).
+2. Click **New +** → **Blueprint**.
+3. Connect GitHub and select `Asadyousaf03/backend-fastapi`.
+4. Review the service config (plan: **Free**) and click **Apply**.
+
+### Option B — Manual Web Service (recommended if Blueprint asks for payment)
+
+1. **New +** → **Web Service** (not Blueprint).
+2. Connect `Asadyousaf03/backend-fastapi`, branch `main`.
+3. Use these settings:
+
+| Setting | Value |
+|---|---|
+| Name | `backend-fastapi` |
+| Region | closest to you |
+| Runtime | Python 3 |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| Instance Type | **Free** |
+
+4. Add environment variable (update after frontend deploy):
 
 ```
 CORS_ORIGINS=http://localhost:3000,https://your-frontend.vercel.app
 ```
 
-4. Deploy. Copy your backend URL, e.g. `https://backend-fastapi.vercel.app`.
-5. Set that URL as `NEXT_PUBLIC_API_URL` in the frontend Vercel project.
+5. Click **Create Web Service**.
 
-Test: `GET https://your-backend.vercel.app/health` → `{"status":"ok"}`
+### After deploy
+
+Copy your Render URL, e.g. `https://backend-fastapi.onrender.com`.
+
+Test:
+
+```
+GET https://backend-fastapi.onrender.com/health
+```
+
+Expected: `{"status":"ok"}`
+
+Set this URL as `NEXT_PUBLIC_API_URL` in your Vercel frontend project.
+
+### Free tier notes
+
+- Service spins down after ~15 minutes of inactivity.
+- First request after idle may take 30–60 seconds (cold start).
+- If Render asks for a card, it is usually optional verification on the Hobby plan — select **Free** instance type and skip payment if possible. A $1 hold may appear and is refunded.
 
 ## API
 
@@ -81,13 +116,10 @@ Test: `GET https://your-backend.vercel.app/health` → `{"status":"ok"}`
 
 ```
 backend-fastapi/
-├── main.py           # FastAPI app (Vercel entrypoint)
+├── main.py           # FastAPI app and routes
 ├── schemas.py        # Pydantic models
 ├── requirements.txt
-├── vercel.json       # Vercel function config
+├── render.yaml       # Render Blueprint config
+├── runtime.txt       # Python version
 └── .venv/            # Local only (not committed)
 ```
-
-## Alternative hosts
-
-`render.yaml` is included if you later use Render with a paid or verified account. For hackathon demos, Vercel is the simplest no-card option for both repos.
