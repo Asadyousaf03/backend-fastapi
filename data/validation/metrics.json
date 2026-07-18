@@ -1,0 +1,30 @@
+{
+  "drug": "ciprofloxacin",
+  "organism": "Escherichia coli",
+  "breakpoint_standard": "EUCAST v16.1",
+  "split": "lineage-aware",
+  "n_total": 20,
+  "n_train_lineages": 10,
+  "n_test_lineages": 3,
+  "n_binary_test": 4,
+  "n_atu_excluded": 1,
+  "metrics": {
+    "auc": 1.0,
+    "balanced_accuracy": 1.0,
+    "mcc": 1.0,
+    "sensitivity": 1.0,
+    "specificity": 1.0,
+    "precision": 1.0,
+    "f1": 1.0,
+    "tp": 3,
+    "tn": 1,
+    "fp": 0,
+    "fn": 0,
+    "ece": 0.15000000000000002
+  },
+  "notes": [
+    "Replace demo scores with AMRpredictor probabilities on held-out assemblies.",
+    "Download independent labels from NCBI Pathogen Detection AST browser.",
+    "ATU (MIC 0.5) samples are reported separately and excluded from binary metrics."
+  ]
+}

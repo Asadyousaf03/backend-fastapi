@@ -3,3 +3,12 @@ __pycache__/
 .venv/
 venv/
 .env
+data/uploads/
+data/models/**
+!data/models/**/
+!data/models/**/README.md
+*.db
+openapi.json
+.pytest_cache/
+.mypy_cache/
+.modal/
