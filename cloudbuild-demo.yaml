@@ -1,0 +1,18 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - us-central1-docker.pkg.dev/gen-lang-client-0182169919/genomic-ast/api:demo
+      - -f
+      - Dockerfile.demo
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - us-central1-docker.pkg.dev/gen-lang-client-0182169919/genomic-ast/api:demo
+images:
+  - us-central1-docker.pkg.dev/gen-lang-client-0182169919/genomic-ast/api:demo
+timeout: 1800s
+options:
+  machineType: E2_HIGHCPU_8

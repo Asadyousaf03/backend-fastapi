@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from config import get_settings
 from schemas import SusceptibilityLabel, VariantEvidence
 
 
@@ -121,9 +122,10 @@ def detect_cipro_markers(assembly_path: Path) -> list[VariantEvidence]:
         for line in assembly_path.read_text(encoding="utf-8", errors="ignore").splitlines()
         if not line.startswith(">")
     )
-    tool_hits = _run_amrfinderplus(assembly_path)
-    if tool_hits:
-        return tool_hits
+    if shutil.which("amrfinder"):
+        return _run_amrfinderplus(assembly_path)
+    if not get_settings().enable_demo_fallback:
+        raise RuntimeError("AMRFinderPlus is unavailable and demo fallback is disabled")
     return _scan_sequence_for_markers(sequence)
 
 

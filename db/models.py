@@ -24,7 +24,8 @@ class AnalysisRecord(Base):
     current_stage: Mapped[str | None] = mapped_column(String(64), nullable=True)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
     sample_name: Mapped[str] = mapped_column(String(200))
-    organism: Mapped[str] = mapped_column(String(128), default="Escherichia coli")
+    organism: Mapped[str] = mapped_column(String(128))
+    selected_organism_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     platform: Mapped[str | None] = mapped_column(String(128), nullable=True)
     read_type: Mapped[str] = mapped_column(String(32), default="assembly")
     file_format: Mapped[str] = mapped_column(String(16))
@@ -34,6 +35,10 @@ class AnalysisRecord(Base):
     sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     result_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_schema_version: Mapped[str | None] = mapped_column(String(16), nullable=True, default="2")
+    remote_job_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    tool_run_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,

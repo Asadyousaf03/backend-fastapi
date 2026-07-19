@@ -1,124 +1,134 @@
-# Hack Nation AI — Genomic AST Backend
+# Hack Nation AI — Multi-Pathogen Genomic AST Backend
 
-FastAPI service for **E. coli ciprofloxacin** genomic antimicrobial susceptibility prediction.
+FastAPI service that runs **ResFinder 4.7.2** (primary genotype→phenotype inference) and **AMRFinderPlus 4.2.7** (independent genotypic corroboration) to produce multi-drug antibiograms for supported bacterial panels.
 
-**Research use only. Not a clinical diagnostic.**
+**Research use only. Not a clinical diagnostic.**  
+AMRFinderPlus corroborates genotype evidence; it does **not** validate phenotype. True accuracy requires genome + phenotypic AST/MIC datasets.
 
-Pairs with the Next.js frontend: [frontend-nextjs](https://github.com/Asadyousaf03/frontend-nextjs).
+Pairs with: [frontend-nextjs](https://github.com/Asadyousaf03/frontend-nextjs).
 
 ## Architecture
 
+```text
+Upload FASTA → API job → Storage/DB → Worker (local Docker or Modal)
+  → QC → selected species panel
+  → ResFinder (primary) + AMRFinderPlus (corroboration)
+  → per-drug reconciliation → versioned antibiogram + SSE
+```
+
 | Endpoint | Role |
 |---|---|
-| `GET /health` | Liveness + compute/storage backend |
-| `POST /api/v1/uploads` | Create upload slot (local PUT or S3 presign) |
-| `PUT /api/v1/uploads/{id}/content` | Upload FASTA/FASTQ bytes |
-| `POST /api/v1/analyses` | Enqueue async job (`202` + `analysis_id`) |
-| `GET /api/v1/analyses/{id}` | Status / stage / progress |
-| `GET /api/v1/analyses/{id}/events` | SSE progress (`Last-Event-ID` supported) |
-| `GET /api/v1/analyses/{id}/result` | Final report (QC, R/S, variants, SHAP, interpretation) |
+| `GET /health` | Liveness |
+| `GET /ready` | Tool/database readiness |
+| `GET /api/v2/capabilities` | Species panels, pins, tool readiness |
+| `POST /api/v2/uploads` | Create upload slot |
+| `PUT /api/v2/uploads/{id}/content` | Upload assembled FASTA |
+| `POST /api/v2/analyses` | Enqueue job (`202`) |
+| `GET /api/v2/analyses/{id}` | Status |
+| `GET /api/v2/analyses/{id}/events` | SSE progress |
+| `GET /api/v2/analyses/{id}/result` | `AnalysisResultV2` antibiogram |
 
-Legacy `POST /api/analyze` remains deprecated for compatibility.
-
-Heavy compute runs in a **local thread** or on **Modal** when `COMPUTE_BACKEND=modal` (`services/compute.py` → `services/pipeline.py`).
+`/api/v1/*` remains for compatibility. This release accepts **assembled FASTA only**.
 
 ### Pipeline stages (SSE)
 
-`queued` → `qc` → `assembly` → `species` → `features` → `ml` → `rules` → `interpretation` → `completed` (or `failed`).
+`queued` → `qc` → `species` → `resfinder` → `amrfinderplus` → `reconcile` → `interpretation` → `completed` / `failed`
 
-Layout:
+## Supported species panels
 
-```
-main.py                 App, CORS, health
-config.py               Env-backed settings
-routes/uploads.py       Upload API
-routes/analyses.py      Analyses + SSE
-services/pipeline.py    Job orchestration
-services/ml_core.py     AMRpredictor / heuristic fallback
-services/events.py      Progress event store
-modal_app/              Modal deploy entrypoints
-db/                     SQLAlchemy models + session
-validation/             Lineage-aware metrics
-data/samples/           Demo FASTA
-```
+Escherichia coli, Salmonella, Campylobacter jejuni/coli, Enterococcus faecium/faecalis, Staphylococcus aureus, Mycobacterium tuberculosis.
 
-## Local setup
+Organism must be **user-selected** (no taxonomic auto-detection in this release).
+
+## Pinned scientific runtime
+
+| Component | Pin |
+|---|---|
+| ResFinder | `4.7.2` |
+| ResFinder DB | commit `eecf0aa…` (`2.6.0`) |
+| PointFinder DB | commit `44ce624…` (`4.1.1`) |
+| AMRFinderPlus | `4.2.7` / DB `2026-05-15.1` |
+
+Never update databases during a user job.
+
+## Local setup (API only, fixture mode)
+
+Useful on Windows without bioinformatics binaries:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
+# In .env:
+# TOOL_EXECUTION_MODE=fixture
+# ALLOW_FIXTURE_MODE=true
+# REQUIRE_REAL_TOOLS=true
 uvicorn main:app --reload --port 8001
 ```
 
-Open docs at [http://localhost:8001/docs](http://localhost:8001/docs).
+Fixture mode loads golden ResFinder/AMRFinder outputs from `tests/fixtures/tools/` and is for CI/demo only—not production inference.
 
-Use port **8001** so it matches the frontend README / `.env.example` (`PUBLIC_API_BASE`). Config still defaults `PUBLIC_API_BASE` to `8000` if unset — set it in `.env`.
+```powershell
+pytest -q
+python scripts\e2e_demo.py
+```
+
+## Local setup (real tools via Docker)
+
+```powershell
+docker compose up --build
+```
+
+This builds `Dockerfile.tools` (ResFinder + AMRFinderPlus + pinned DBs) and exposes the API on port **8001**. Health: `GET /ready`.
+
+## Production compute (Modal)
+
+1. Create Modal secrets `genomic-ast-db` (`DATABASE_URL`) and `genomic-ast-storage` (`STORAGE_BACKEND`, `S3_*`).
+2. Set API `COMPUTE_BACKEND=modal`, Postgres `DATABASE_URL`, and S3 storage.
+3. Deploy: `modal deploy modal_app/app.py`
+4. Modal dispatch **fails closed**—no silent local fallback.
 
 ## Environment
 
-Copy `.env.example`. Important variables:
+See `.env.example`. Important variables:
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | SQLite (default `sqlite:///./data/genomic_ast.db`) or Postgres |
-| `STORAGE_BACKEND` | `local` or `s3` |
-| `LOCAL_STORAGE_PATH` | Local upload root (default `./data/uploads`) |
-| `PUBLIC_API_BASE` | Absolute base used in upload URLs (e.g. `http://localhost:8001`) |
+| `REQUIRE_REAL_TOOLS` | Fail closed when tools unavailable (`true` in production) |
+| `TOOL_EXECUTION_MODE` | `real` or `fixture` |
+| `RESFINDER_DB` / `POINTFINDER_DB` / `AMRFINDER_DB` | Pinned DB paths |
 | `COMPUTE_BACKEND` | `local` or `modal` |
-| `ENABLE_DEMO_FALLBACK` | Heuristic path when model weights missing |
-| `AMRPREDICTOR_MODEL_DIR` | Path to AMRpredictor weights |
-| `CORS_ORIGINS` | Comma-separated frontend origins |
-| `GEMINI_API_KEY` / `GEMINI_MODEL` | Optional clinical interpretation text |
-| `S3_*` | Required when `STORAGE_BACKEND=s3` |
+| `STORAGE_BACKEND` | `local` or `s3` |
+| `DATABASE_URL` | SQLite (dev) or Postgres (prod) |
 
-Do not commit `.env`, `*.db`, `data/uploads/`, or model weight binaries.
+Schema evolution: lightweight `db/migrate.py` on startup + Alembic under `alembic/` (`alembic upgrade head`).
 
-## Demo FASTA
+## Demo samples
 
-- `data/samples/demo_ecoli_cipro_r.fasta` — resistant-oriented demo
-- `data/samples/demo_ecoli_cipro_s.fasta` — susceptible-oriented demo
+- `data/samples/demo_ecoli_cipro_r.fasta`
+- `data/samples/demo_saureus.fasta` (created by e2e if missing)
 
-Regenerate with `python scripts/make_demo_fasta.py` if needed.
+## Layout
 
-## Scripts
-
-```powershell
-# Smoke test: upload → analyze → poll → print R/S (uses TestClient, no server required)
-python scripts/e2e_demo.py
-
-# Inspect a failed analysis record
-python scripts/debug_failed.py
-
-# Export OpenAPI snapshot
-python scripts/export_openapi.py
+```
+main.py                 App, /health, /ready, capabilities
+config.py               Env settings
+routes/                 Upload + analysis APIs (v1/v2)
+services/pipeline.py    Fail-closed orchestration
+services/tools/         ResFinder + AMRFinderPlus adapters
+services/species.py     Supported panels
+services/reconciliation.py
+modal_app/              Modal worker image + spawn
+Dockerfile.tools        Pinned scientific runtime
+docker-compose.yml      Local real-tool stack
+alembic/                Migrations
+tests/                  Fixture/unit/e2e tests
+PROJECT_HANDOFF.md      Contributor roadmap
 ```
 
-## ML core
+## Safety rules
 
-1. Download AMRpredictor models from [Zenodo 16213507](https://zenodo.org/records/16213507)
-2. Place E. coli ciprofloxacin XGBoost weights under `data/models/amrpredictor/`
-3. Optional: install `amrfinder` for mechanistic corroboration
-
-Without weights, the pipeline uses a transparent heuristic + marker scan (demo fallback) and still returns the full report schema.
-
-## Validation
-
-```powershell
-python -m validation.run_validation
-```
-
-Uses `data/validation/ecoli_cipro_ast.csv` and writes lineage-aware metrics (EUCAST ATU / MIC 0.5 handling) under `data/validation/`.
-
-## Modal deploy
-
-```powershell
-modal deploy modal_app/app.py
-```
-
-Set `COMPUTE_BACKEND=modal` and provide a `DATABASE_URL` reachable from Modal.
-
-## Render
-
-See `render.yaml` for the hosted service blueprint. Point the frontend `NEXT_PUBLIC_API_URL` at the Render URL and allow the Vercel origin in CORS.
+- Failed/unavailable tools never become “susceptible” or “no resistance.”
+- Empty determinant lists yield `unknown` / explicit no-call states unless ResFinder issues a phenotype call.
+- Every result includes tool/database versions and research-use disclaimer.

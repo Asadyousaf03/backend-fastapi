@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+    ports:
+      - "8001:8001"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: sqlite:////data/genomic_ast.db
+      STORAGE_BACKEND: local
+      LOCAL_STORAGE_PATH: /data/uploads
+      PUBLIC_API_BASE: http://localhost:8001
+      COMPUTE_BACKEND: local
+      ENABLE_DEMO_FALLBACK: "false"
+      REQUIRE_REAL_TOOLS: "true"
+      RESFINDER_DB: /opt/dbs/resfinder_db
+      POINTFINDER_DB: /opt/dbs/pointfinder_db
+      AMRFINDER_DB: /opt/dbs/amrfinder/2026-05-15.1
+      TOOL_TIMEOUT_SECONDS: "1800"
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    volumes:
+      - genomic_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  genomic_data:

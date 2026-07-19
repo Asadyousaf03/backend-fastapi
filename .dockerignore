@@ -1,0 +1,14 @@
+.venv/
+.git/
+.pytest_cache/
+__pycache__/
+*.pyc
+node_modules/
+.env
+.env.cloud
+.env.*.local
+data/tmp_demo/
+data/uploads/
+data/genomic_ast.db
+*.log
+.DS_Store

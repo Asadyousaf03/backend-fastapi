@@ -23,11 +23,8 @@ class MLInferenceResult:
 def _load_amrpredictor_model(model_dir: Path):
     model_path = model_dir / "ecoli_ciprofloxacin_xgb.json"
     if not model_path.exists():
-        # Also accept generic pickle/json names from Zenodo dumps.
-        for candidate in model_dir.glob("*cipro*"):
-            model_path = candidate
-            break
-        else:
+        model_path = model_dir / "ecoli_ciprofloxacin_xgb.ubj"
+        if not model_path.exists():
             return None
     try:
         import xgboost as xgb
@@ -88,6 +85,35 @@ def _shap_from_features(
     return shap_features
 
 
+def _shap_from_model(names: list[str], contributions) -> list[ShapFeature]:
+    ranked = sorted(
+        zip(names, (float(value) for value in contributions[: len(names)]), strict=True),
+        key=lambda item: abs(item[1]),
+        reverse=True,
+    )
+    output: list[ShapFeature] = []
+    for idx, (name, value) in enumerate(ranked[:12], start=1):
+        direction = (
+            "resistant" if value > 0.02 else "susceptible" if value < -0.02 else "neutral"
+        )
+        output.append(
+            ShapFeature(
+                feature=name,
+                shap_value=round(value, 5),
+                direction=direction,
+                rank=idx,
+            )
+        )
+    return output or [
+        ShapFeature(
+            feature="model_bias",
+            shap_value=0.0,
+            direction="neutral",
+            rank=1,
+        )
+    ]
+
+
 def _heuristic_probability(features: dict[str, float], variants: list[VariantEvidence]) -> float:
     base = 0.18
     if variants:
@@ -106,7 +132,8 @@ def predict_ciprofloxacin(
     features = extract_feature_vector(assembly_path)
     model = _load_amrpredictor_model(Path(settings.amrpredictor_model_dir))
     used_pretrained = False
-    probability = _heuristic_probability(features, variants)
+    probability: float
+    shap_features: list[ShapFeature]
 
     if model is not None:
         try:
@@ -122,18 +149,32 @@ def predict_ciprofloxacin(
                 row = [features[name] for name in names]
             dmatrix = xgb.DMatrix([row], feature_names=names)
             probability = float(model.predict(dmatrix)[0])
+            contributions = model.predict(dmatrix, pred_contribs=True)[0]
+            shap_features = _shap_from_model(names, contributions)
             used_pretrained = True
-        except Exception:
+        except Exception as exc:
+            if not settings.enable_demo_fallback:
+                raise RuntimeError(
+                    "AMRpredictor model inference failed and demo fallback is disabled"
+                ) from exc
             used_pretrained = False
             probability = _heuristic_probability(features, variants)
+            shap_features = _shap_from_features(features, probability, variants)
+    else:
+        if not settings.enable_demo_fallback:
+            raise RuntimeError(
+                "AMRpredictor model is unavailable and demo fallback is disabled"
+            )
+        probability = _heuristic_probability(features, variants)
+        shap_features = _shap_from_features(features, probability, variants)
 
     rule_label = rule_based_call(variants)
     if probability >= 0.5:
         label: SusceptibilityLabel = "R"
-        source = "ml"
+        source = "ml" if used_pretrained else "heuristic"
     else:
         label = "S"
-        source = "ml"
+        source = "ml" if used_pretrained else "heuristic"
 
     # Reconcile: if rules strongly indicate R and ML is borderline, prefer R.
     if rule_label == "R" and 0.35 <= probability < 0.55:
@@ -156,5 +197,4 @@ def predict_ciprofloxacin(
         breakpoint_standard="EUCAST v16.1",
         confidence=round(min(0.98, abs(probability - 0.5) * 1.8 + 0.4), 4),
     )
-    shap_features = _shap_from_features(features, probability, variants)
     return MLInferenceResult(call=call, shap_features=shap_features, used_pretrained=used_pretrained)

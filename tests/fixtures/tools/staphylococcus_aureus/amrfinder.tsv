@@ -1,0 +1,4 @@
+Protein id	Contig id	Start	Stop	Strand	Gene symbol	Sequence name	Scope	Element type	Element subtype	Class	Subclass	Method	Target length	Reference protein length	% Coverage of reference sequence	% Identity to reference sequence	Alignment length	Accession of closest sequence	Name of closest sequence	HMM id	HMM description
+NA	contig_1	100	2100	+	mecA	methicillin-resistant PBP2a	core	AMR	AMR	BETA-LACTAM	METHICILLIN	BLASTX	668	668	100.00	100.00	668	WP_000722120.1	MecA	NA	NA
+NA	contig_2	50	800	+	ermC	macrolide resistance methyltransferase ErmC	core	AMR	AMR	MACROLIDE	ERYTHROMYCIN	BLASTX	244	244	100.00	99.50	244	WP_001028043.1	ErmC	NA	NA
+NA	contig_1	251	253	+	gyrA_S84L	gyrA quinolone resistance point mutation	core	AMR	POINT	QUINOLONE	CIPROFLOXACIN	POINTX	1	1	100.00	100.00	1	NA	gyrA S84L	NA	NA

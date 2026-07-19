@@ -1,0 +1,72 @@
+{
+  "phenotypes": {
+    "ciprofloxacin": {
+      "resistant": true,
+      "class": "fluoroquinolone",
+      "genes": ["gyrA", "parC"]
+    },
+    "ampicillin": {
+      "resistant": true,
+      "class": "beta-lactam",
+      "genes": ["blaTEM-1"]
+    },
+    "gentamicin": {
+      "resistant": false,
+      "class": "aminoglycoside",
+      "genes": []
+    },
+    "meropenem": {
+      "resistant": false,
+      "class": "carbapenem",
+      "genes": []
+    },
+    "trimethoprim": {
+      "resistant": true,
+      "class": "folate pathway antagonist",
+      "genes": ["dfrA17"]
+    }
+  },
+  "seq_region": {
+    "blaTEM-1": {
+      "name": "blaTEM-1",
+      "identity": 99.2,
+      "coverage": 100.0,
+      "phenotypes": ["ampicillin"],
+      "contig": "contig_1",
+      "start": 1200,
+      "end": 2060,
+      "ref_acc": "NG_050145.1"
+    },
+    "dfrA17": {
+      "name": "dfrA17",
+      "identity": 100.0,
+      "coverage": 100.0,
+      "phenotypes": ["trimethoprim"],
+      "contig": "contig_2",
+      "start": 400,
+      "end": 880
+    }
+  },
+  "pointfinder": {
+    "gyrA_S83L": {
+      "gene": "gyrA",
+      "mutation": "S83L",
+      "phenotypes": ["ciprofloxacin"],
+      "identity": 100,
+      "coverage": 100,
+      "contig": "contig_1",
+      "start": 248,
+      "end": 250
+    },
+    "parC_S80I": {
+      "gene": "parC",
+      "mutation": "S80I",
+      "phenotypes": ["ciprofloxacin"],
+      "identity": 100,
+      "coverage": 100,
+      "contig": "contig_1",
+      "start": 239,
+      "end": 241
+    }
+  }
+}

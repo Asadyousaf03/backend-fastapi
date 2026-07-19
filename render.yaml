@@ -10,17 +10,41 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: ENVIRONMENT
+        value: production
       - key: CORS_ORIGINS
-        value: http://localhost:3000,http://127.0.0.1:3000
-      - key: COMPUTE_BACKEND
-        value: local
-      - key: STORAGE_BACKEND
-        value: local
-      - key: ENABLE_DEMO_FALLBACK
-        value: "true"
-      - key: DATABASE_URL
-        sync: false
-      - key: GEMINI_API_KEY
         sync: false
       - key: PUBLIC_API_BASE
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_BUCKET
+        value: genomic-ast
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_REGION
+        value: us-east-1
+      - key: COMPUTE_BACKEND
+        value: modal
+      - key: MODAL_APP_NAME
+        value: genomic-ast
+      - key: MODAL_TOKEN_ID
+        sync: false
+      - key: MODAL_TOKEN_SECRET
+        sync: false
+      - key: REQUIRE_REAL_TOOLS
+        value: "true"
+      - key: TOOL_EXECUTION_MODE
+        value: real
+      - key: ALLOW_FIXTURE_MODE
+        value: "false"
+      - key: ENABLE_DEMO_FALLBACK
+        value: "false"
+      - key: GEMINI_API_KEY
         sync: false

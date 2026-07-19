@@ -3,7 +3,13 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.cloud
+.env.*.local
+.secrets/
 data/uploads/
+data/tmp_demo/
+data/validation/*.log
+data/validation/*.err
 data/models/**
 !data/models/**/
 !data/models/**/README.md

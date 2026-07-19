@@ -1,0 +1,90 @@
+# Pinned genomic AST scientific runtime.
+# ResFinder 4.7.2 + PointFinder DB + AMRFinderPlus 4.2.7 / DB 2026-05-15.1
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    RESFINDER_VERSION=4.7.2 \
+    RESFINDER_DB_COMMIT=eecf0aa207594fe6d51badf808473de62b28cb06 \
+    POINTFINDER_DB_COMMIT=44ce624a806c6d2b70f7e39841a5f9cb4d9010aa \
+    AMRFINDER_VERSION=4.2.7 \
+    AMRFINDER_DB_VERSION=2026-05-15.1 \
+    RESFINDER_DB=/opt/dbs/resfinder_db \
+    POINTFINDER_DB=/opt/dbs/pointfinder_db \
+    AMRFINDER_DB=/opt/dbs/amrfinder/${AMRFINDER_DB_VERSION} \
+    PATH="/opt/amrfinder:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      wget \
+      git \
+      build-essential \
+      zlib1g-dev \
+      libcurl4-openssl-dev \
+      python3 \
+      python3-pip \
+      python3-venv \
+      ncbi-blast+ \
+      hmmer \
+    && rm -rf /var/lib/apt/lists/*
+
+# KMA (required by ResFinder for indexing/reads)
+WORKDIR /tmp
+RUN git clone --depth 1 https://bitbucket.org/genomicepidemiology/kma.git \
+    && make -C kma \
+    && cp kma/kma kma/kma_index kma/kma_shm /usr/local/bin/ \
+    && rm -rf kma
+
+# ResFinder software
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+      "resfinder==${RESFINDER_VERSION}" \
+      "cgelib>=0.7.3" \
+      "cgecore==2.0.1" \
+      "tabulate>=0.8.9" \
+      "pandas>=1.4.2" \
+      "biopython>=1.79"
+
+# Pinned ResFinder / PointFinder databases
+# INSTALL.py expects to be run with cwd == the DB directory (reads ./config).
+RUN mkdir -p /opt/dbs \
+    && git clone https://bitbucket.org/genomicepidemiology/resfinder_db.git ${RESFINDER_DB} \
+    && git -C ${RESFINDER_DB} checkout ${RESFINDER_DB_COMMIT} \
+    && (cd ${RESFINDER_DB} && python3 INSTALL.py /usr/local/bin/kma_index non_interactive) \
+    && git clone https://bitbucket.org/genomicepidemiology/pointfinder_db.git ${POINTFINDER_DB} \
+    && git -C ${POINTFINDER_DB} checkout ${POINTFINDER_DB_COMMIT} \
+    && (cd ${POINTFINDER_DB} && python3 INSTALL.py /usr/local/bin/kma_index non_interactive)
+
+# AMRFinderPlus binary + pinned database (manual archive, never --update at runtime)
+RUN mkdir -p /opt/amrfinder /opt/dbs/amrfinder \
+    && curl -fsSL \
+      "https://github.com/ncbi/amr/releases/download/amrfinder_v${AMRFINDER_VERSION}/amrfinder_binaries_v${AMRFINDER_VERSION}.tar.gz" \
+      -o /tmp/amrfinder.tar.gz \
+    && tar -xzf /tmp/amrfinder.tar.gz -C /opt/amrfinder \
+    && curl -fsSL \
+      "https://ftp.ncbi.nlm.nih.gov/pathogen/Antimicrobial_resistance/AMRFinderPlus/database/3.12/${AMRFINDER_DB_VERSION}.tar.gz" \
+      -o /tmp/amrfinder_db.tar.gz \
+    || curl -fsSL \
+      "https://ftp.ncbi.nlm.nih.gov/pathogen/Antimicrobial_resistance/AMRFinderPlus/database/${AMRFINDER_DB_VERSION}.tar.gz" \
+      -o /tmp/amrfinder_db.tar.gz \
+    && mkdir -p ${AMRFINDER_DB} \
+    && tar -xzf /tmp/amrfinder_db.tar.gz -C ${AMRFINDER_DB} --strip-components=1 \
+    && (amrfinder_index ${AMRFINDER_DB} || true) \
+    && rm -f /tmp/amrfinder.tar.gz /tmp/amrfinder_db.tar.gz
+
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+RUN python3 -m pip install --break-system-packages --no-cache-dir -r /app/requirements.txt
+COPY . /app
+
+COPY scripts/tool_readiness.sh /usr/local/bin/tool-readiness
+RUN chmod +x /usr/local/bin/tool-readiness
+
+LABEL org.opencontainers.image.title="genomic-ast-tools" \
+      org.opencontainers.image.description="Pinned ResFinder + AMRFinderPlus runtime" \
+      resfinder.version="${RESFINDER_VERSION}" \
+      amrfinder.version="${AMRFINDER_VERSION}" \
+      amrfinder.db="${AMRFINDER_DB_VERSION}"
+
+CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

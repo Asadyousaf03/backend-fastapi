@@ -1,0 +1,66 @@
+{
+  "phenotypes": {
+    "oxacillin": {
+      "resistant": true,
+      "class": "beta-lactam",
+      "genes": ["mecA"]
+    },
+    "cefoxitin": {
+      "resistant": true,
+      "class": "cephamycin",
+      "genes": ["mecA"]
+    },
+    "ciprofloxacin": {
+      "resistant": true,
+      "class": "fluoroquinolone",
+      "genes": ["gyrA"]
+    },
+    "vancomycin": {
+      "resistant": false,
+      "class": "glycopeptide",
+      "genes": []
+    },
+    "linezolid": {
+      "resistant": false,
+      "class": "oxazolidinone",
+      "genes": []
+    },
+    "erythromycin": {
+      "resistant": true,
+      "class": "macrolide",
+      "genes": ["ermC"]
+    }
+  },
+  "seq_region": {
+    "mecA": {
+      "name": "mecA",
+      "identity": 100.0,
+      "coverage": 100.0,
+      "phenotypes": ["oxacillin", "cefoxitin"],
+      "contig": "contig_1",
+      "start": 100,
+      "end": 2100
+    },
+    "ermC": {
+      "name": "ermC",
+      "identity": 99.5,
+      "coverage": 100.0,
+      "phenotypes": ["erythromycin"],
+      "contig": "contig_2",
+      "start": 50,
+      "end": 800
+    }
+  },
+  "pointfinder": {
+    "gyrA_S84L": {
+      "gene": "gyrA",
+      "mutation": "S84L",
+      "phenotypes": ["ciprofloxacin"],
+      "identity": 100,
+      "coverage": 100,
+      "contig": "contig_1",
+      "start": 251,
+      "end": 253
+    }
+  }
+}

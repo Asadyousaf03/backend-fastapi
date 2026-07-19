@@ -1,0 +1,5 @@
+Protein id	Contig id	Start	Stop	Strand	Gene symbol	Sequence name	Scope	Element type	Element subtype	Class	Subclass	Method	Target length	Reference protein length	% Coverage of reference sequence	% Identity to reference sequence	Alignment length	Accession of closest sequence	Name of closest sequence	HMM id	HMM description
+NA	contig_1	1200	2060	+	blaTEM-1	blaTEM-1 family class A beta-lactamase	core	AMR	AMR	BETA-LACTAM	BETA-LACTAM	BLASTX	286	286	100.00	99.20	286	WP_000027057.1	BETA-LACTAMASE TEM-1	NA	NA
+NA	contig_1	248	250	+	gyrA_S83L	gyrA quinolone resistance point mutation	core	AMR	POINT	QUINOLONE	CIPROFLOXACIN	POINTX	1	1	100.00	100.00	1	NA	gyrA S83L	NA	NA
+NA	contig_1	239	241	+	parC_S80I	parC quinolone resistance point mutation	core	AMR	POINT	QUINOLONE	CIPROFLOXACIN	POINTX	1	1	100.00	100.00	1	NA	parC S80I	NA	NA
+NA	contig_2	400	880	+	dfrA17	trimethoprim-resistant dihydrofolate reductase DfrA17	core	AMR	AMR	TRIMETHOPRIM	TRIMETHOPRIM	BLASTX	157	157	100.00	100.00	157	WP_000183800.1	DfrA17	NA	NA

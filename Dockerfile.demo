@@ -1,0 +1,24 @@
+# Fast Cloud Run demo image (API + fixture antibiogram path).
+# Real tools remain in Dockerfile / Dockerfile.tools for later.
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/app
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY . /app
+RUN mkdir -p /app/data/uploads /tmp/genomic-ast-uploads \
+    && chmod -R 777 /app/data /tmp/genomic-ast-uploads
+
+EXPOSE 8080
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

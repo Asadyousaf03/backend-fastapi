@@ -5,21 +5,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from config import get_settings
-from db.models import Base
+from db.migrate import migrate_schema
 
 settings = get_settings()
 
-connect_args = {}
+connect_args: dict = {}
 if settings.database_url.startswith("sqlite"):
     Path("./data").mkdir(parents=True, exist_ok=True)
     connect_args = {"check_same_thread": False}
+elif settings.database_url.startswith("postgresql"):
+    # Supabase transaction pooler (port 6543) does not support prepared statements.
+    connect_args = {"prepare_threshold": None}
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(
+    settings.database_url,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+    migrate_schema(engine)
 
 
 def get_db() -> Generator[Session, None, None]:

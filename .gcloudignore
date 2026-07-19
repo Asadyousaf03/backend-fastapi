@@ -1,0 +1,15 @@
+.gcloudignore
+.git
+.gitignore
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.env
+.env.cloud
+.env.*.local
+data/tmp_demo
+data/uploads
+data/genomic_ast.db
+*.log
